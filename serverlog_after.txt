@@ -1,8 +1,0 @@
-Broadcasting message to 2 sessions (game_id: game_0): {"reason":"resignation","resignedPlayer":"black","type":"gameEnded","winner":"white"}
-Exception in main thread: [ChessSession::send] Message added to queue. Queue size: [ChessSession::send] Message added to queue. Queue size: 1
-device or resource busy: device or resource busy1
-[ChessSession::send] Queue was empty, dispatching do_write.
-
-[ChessSession::send] Queue was empty, dispatching do_write.
-[ChessSession::on_write] Message popped from queue. Remaining size: 0
-[ChessSession::on_write] Message popped from queue. Remaining size: 0
