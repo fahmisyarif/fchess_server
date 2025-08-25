@@ -1,0 +1,545 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FChess Game</title>
+    <link rel="stylesheet" href="chessboard-1.0.0.min.css">
+    <style>
+        /* Reset & Tampilan Dasar */
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c2f33; /* Latar belakang gelap untuk kontras */
+            color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Kontainer Utama (Berlaku untuk Lobby, Game, dll) */
+        .game-container {
+            display: flex;
+            width: 100%;
+            margin: 0 auto;
+            background-color: #36393f; /* Warna kontainer yang sedikit lebih terang */
+            border-radius: 12px;
+            padding: 25px 35px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            border: 1px solid #4f545c;
+        }
+        .play-area-header {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+            margin-bottom: 20px;
+        }
+
+        /* PERBAIKAN: Perlebar kontainer khusus untuk tampilan game */
+        #gameUIContainer {
+            max-width: 1200px;
+        }
+        /* Styling Form */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+            .form-group label {
+                margin-bottom: 8px;
+                font-weight: bold;
+                color: #b9bbbe;
+            }
+
+        .form-group-inline {
+            display: flex;
+            gap: 10px;
+        }
+
+        select, input[type="text"] {
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #2c2f33;
+            background-color: #303338;
+            color: #ddd;
+            font-size: 1em;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+            select:focus, input[type="text"]:focus {
+                outline: none;
+                border-color: #7289da; /* Aksen warna Discord */
+            }
+
+        /* Styling Tombol */
+        .btn {
+            padding: 12px 20px;
+            margin: 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+            .btn:hover:not(:disabled) {
+                opacity: 0.9;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            }
+
+            .btn:disabled {
+                background-color: #6c757d;
+                cursor: not-allowed;
+            }
+
+        .btn-success {
+            background-color: #43b581;
+        }
+        /* Aksen warna hijau Discord */
+        .btn-large {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+        }
+
+        .btn-text { /* Untuk tombol yang tidak terlalu penting */
+            background: none;
+            color: #7289da;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        /* Daftar Game yang Tersedia */
+        #gameList {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .game-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #36393f;
+            border-radius: 5px;
+            border: 1px solid #4f545c;
+        }
+
+        .game-info span {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .no-games-message {
+            color: #b9bbbe;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        /* Footer Lobi */
+        .lobby-footer {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Styling untuk UI Game (Agar tetap konsisten) */
+        #gameUIContainer h1, #waitingRoom h2 {
+            color: #fff;
+        }
+
+        #status, #playerDisplay {
+            background-color: #40444b;
+            color: #b9bbbe;
+            border: 1px solid #4f545c;
+        }
+
+        .btn-danger {
+            background-color: #d9534f; /* Warna merah untuk tombol Resign */
+        }
+
+            .btn-danger:hover:not(:disabled) {
+                background-color: #c9302c;
+            }
+
+        .clock-container {
+            display: flex;
+            min-height:50px;
+            justify-content: flex-end; /* Jam akan rata kanan */
+            padding: 5px 10px;
+        }
+
+        .clock {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #fff; /* Ubah warna teks jam agar kontras dengan latar belakang baru */
+            background-color: #2c2f33; /* Latar belakang untuk jam */
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #4f545c;
+        }
+        /*untuk klik ke klik*/
+        .highlight-square {
+            box-shadow: inset 0 0 25px yellow;
+        }
+        /* Tambahkan di dalam <style> */
+        .main-game-area {
+            display: flex;
+            position: relative;
+            flex-grow: 1;
+            gap: 20px;
+            align-items: flex-start;
+            height: 100%;
+        }
+
+        .board-column {
+            flex-grow: 1;
+            max-width: 500px;
+            display: flex; /* Tambah ini */
+            flex-direction: column; /* Tambah ini */
+            align-items: center;
+        }
+
+        .history-column {
+            width: 220px; /* Lebar panel riwayat */
+            background-color: #40444b;
+            padding: 15px;
+            border-radius: 8px;
+            height: 100px; /* PERBAIKAN: Sesuaikan tinggi agar sejajar dengan papan + jam */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .move-history-list {
+            flex-grow: 1;
+            overflow-y: auto; /* Aktifkan scroll jika daftar penuh */
+            background-color: #303338;
+            border-radius: 5px;
+            padding: 10px;
+            color: #ddd;
+        }
+
+        .history-controls {
+            display: flex;
+            justify-content: space-around;
+            padding-top: 15px;
+            border-top: 1px solid #4f545c;
+        }
+
+            .history-controls .btn {
+                padding: 8px 12px;
+                font-size: 1.2em;
+            }
+
+        .move-pair {
+            display: flex;
+            margin-bottom: 5px;
+        }
+
+        .move-number {
+            font-weight: bold;
+            width: 30px;
+        }
+
+        .move-notation {
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .move-notation:hover {
+            background-color: #7289da;
+        }
+
+        .highlight-square {
+            box-shadow: inset 0 0 25px yellow !important;
+        }
+
+        .possible-move {
+            box-shadow: inset 0 0 15px rgba(0, 255, 0, 0.5) !important;
+        }
+
+        .possible-move::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 20px;
+                height: 20px;
+                background-color: rgba(0, 255, 0, 0.6);
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+        }
+        /* Tambahkan CSS ini untuk membuat piece "tembus" klik */
+        #myBoard .piece-417db {
+            pointer-events: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="play-area-header"><h1>♔ FChess Game ♚</h1></div>
+    <div id="gameUIContainer" class="game-container" style="display: flex;">
+
+        <div class="main-game-area">
+            <div class="board-column">
+
+                <div id="myBoard" style="width: 700px; margin: 15px auto;"></div>
+            </div>
+        </div>
+        <div class="non-main-area">
+            <div class="status-container">
+                <div id="playerDisplay"><span class="connection-status disconnected"></span>Player: Not connected</div>
+                <div id="status" style="margin-top: 10px;">Connecting to server...</div>
+            </div>
+            <div id="opponentClockContainer" class="clock-container opponent-clock"></div>
+            <div class="history-column">
+                <h3>Riwayat Gerakan</h3>
+                <div id="moveHistory" class="move-history-list"></div>
+                <div class="history-controls">
+                    <button id="rewindBtn" class="btn">⏪</button>
+                    <button id="prevBtn" class="btn">◀️</button>
+                    <button id="nextBtn" class="btn">▶️</button>
+                    <button id="fastForwardBtn" class="btn">⏩</button>
+                </div>
+            </div>
+            <div id="playerClockContainer" class="clock-container player-clock"></div>
+            <div id="clockTemplates" style="display: none;">
+                <div id="whiteClock" class="clock">White: 05:00</div>
+                <div id="blackClock" class="clock">Black: 05:00</div>
+            </div>
+            <div class="controls">
+                <button id="resignBtn" class="btn btn-danger">Resign</button>
+                <button id="newGameBtn" class="btn btn-success" disabled>New Game</button>
+            </div>
+        </div>
+    </div>
+    <script src="jquery-3.5.1.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="chess.js"></script>
+    <script>
+        let board = null;
+        let playerColor = 'white';
+        const opponentClockContainer = $('#opponentClockContainer');
+        const playerClockContainer = $('#playerClockContainer');
+
+        //coba klik-ke-klik
+        let selectedSquare = null;
+        let possibleMoves = [];
+        let lastDragEnd = 0;
+
+        function onSquareClick(square) {
+            console.log('onSquareClick called with:', square);
+
+            if (selectedSquare === null) {
+                // Belum ada yang dipilih, cek apakah ada piece di square ini
+                let piece = board.position()[square];
+                console.log('Piece at', square, ':', piece);
+
+                if (piece) {
+                    selectedSquare = square;
+                    highlightSquare(square);
+                    console.log('Selected square:', selectedSquare);
+                }
+            }
+            else if (selectedSquare === square) {
+                // Klik square yang sama, deselect
+                console.log('Deselecting square');
+                clearHighlights();
+                selectedSquare = null;
+            }
+            else {
+                // Coba lakukan gerakan
+                console.log('Attempting move from', selectedSquare, 'to', square);
+                let moveResult = makeMove(selectedSquare, square);
+
+                if (moveResult) {
+                    console.log('Move successful');
+                    clearHighlights();
+                    selectedSquare = null;
+                } else {
+                    console.log('Move failed, checking if new square has piece');
+                    // Gerakan gagal, cek apakah square baru punya piece
+                    let piece = board.position()[square];
+                    if (piece) {
+                        // Pindah selection ke piece baru
+                        clearHighlights();
+                        selectedSquare = square;
+                        highlightSquare(square);
+                    } else {
+                        // Clear selection
+                        clearHighlights();
+                        selectedSquare = null;
+                    }
+                }
+            }
+        }
+        function highlightSquare(square) {
+            console.log('Highlighting square:', square);
+
+            // Cari square element berdasarkan class
+            let squareElement = document.querySelector('#myBoard .square-' + square);
+
+            if (squareElement) {
+                squareElement.classList.add('highlight-square');
+                console.log('Square highlighted successfully');
+            } else {
+                console.log('Square element not found for:', square);
+            }
+        }
+
+        function clearHighlights() {
+            // Remove highlight dari semua square
+            document.querySelectorAll('#myBoard .highlight-square').forEach(el => {
+                el.classList.remove('highlight-square');
+            });
+        }
+
+        function highlightPossibleMoves(square) {
+            // Jika Anda pakai chess.js library untuk validasi gerakan
+            if (typeof Chess !== 'undefined' && window.game) {
+                let moves = window.game.moves({
+                    square: square,
+                    verbose: true
+                });
+
+                moves.forEach(move => {
+                    let targetSquareEl = document.querySelector(`[data-square="${move.to}"]`);
+                    if (targetSquareEl) {
+                        targetSquareEl.classList.add('possible-move');
+                    }
+                });
+            }
+        }
+        function clearHighlights() {
+            // Clear selected square
+            document.querySelectorAll('.highlight-square').forEach(el => {
+                el.classList.remove('highlight-square');
+            });
+
+            // Clear possible moves
+            document.querySelectorAll('.possible-move').forEach(el => {
+                el.classList.remove('possible-move');
+            });
+        }
+        function makeMove(from, to) {
+            console.log('makeMove called:', from, 'to', to);
+
+            let currentPosition = board.position();
+            let piece = currentPosition[from];
+
+            if (piece) {
+                // Buat posisi baru
+                let newPosition = Object.assign({}, currentPosition);
+                delete newPosition[from];
+                newPosition[to] = piece;
+
+                // Update board
+                board.position(newPosition);
+                console.log('Move executed successfully');
+                return true;
+            }
+
+            console.log('No piece found at', from);
+            return false;
+        }
+        function onDragStart(source, piece) {
+            ;
+        }
+
+        function onDrop(source, target) {
+            ;
+        }
+        function updateClockPositions() {
+            // Ambil elemen jam dari templat
+            const whiteClock = $('#whiteClock');
+            const blackClock = $('#blackClock');
+
+            // Kosongkan wadah jam sebelum menambahkan lagi
+            opponentClockContainer.empty();
+            playerClockContainer.empty();
+
+            // Tentukan posisi jam berdasarkan warna pemain
+            if (playerColor === 'white') {
+                opponentClockContainer.append(blackClock); // Jam lawan (Hitam) di atas
+                playerClockContainer.append(whiteClock);   // Jam pemain (Putih) di bawah
+                console.log('appending');
+            } else {
+                opponentClockContainer.append(whiteClock);   // Jam lawan (Putih) di atas
+                playerClockContainer.append(blackClock);  // Jam pemain (Hitam) di bawah
+            }
+        }
+        // Fungsi resize yang lebih efektif
+        function resizeBoard() {
+            if (board) {
+                //     // Hitung ukuran berdasarkan container atau window
+
+                let windowWidth = window.innerWidth;
+                let boardSize;
+                if (windowWidth > 600) {
+                    boardSize = 400;
+                } else if (windowWidth > 400) {
+                    boardSize = windowWidth * 0.6;
+                } else {
+                    boardSize = windowWidth * 0.8;
+                }
+
+                document.getElementById('myBoard').style.width = boardSize + 'px';
+                document.getElementById('myBoard').style.width = boardSize + 'px';
+                board.resize();
+            }
+        }
+        function addClickListeners() {
+            setTimeout(() => {
+                $('#myBoard').on('click', '.square-55d63', function (e) {
+                    if (Date.now() - lastDragEnd < 300) return;
+
+                    console.log('Square clicked:', this.className);
+
+                    let classList = this.className.split(' ');
+                    let squareClass = classList.find(cls => cls.match(/square-[a-h][1-8]/));
+
+                    if (squareClass) {
+                        let square = squareClass.replace('square-', '');
+                        console.log('Square notation:', square);
+                        onSquareClick(square);
+                    }
+                });
+            }, 1000);
+        }
+        let game = new Chess();
+        window.game = game;
+
+        $(document).ready(function () {
+            game = new Chess();
+            window.game = game;
+            const config = {
+                draggable: true, position: 'start', pieceTheme: 'img/chesspieces/wikipedia/{piece}.png', onDragStart: onDragStart, onDrop: onDrop
+            };
+
+            board = Chessboard('myBoard', config);
+        });
+        updateClockPositions();
+
+        const boardElement = document.getElementById('myBoard');
+        boardElement.addEventListener('touchmove', function (e) {
+            e.preventDefault();
+        }, { passive: false });
+        addClickListeners();
+        window.addEventListener('resize', resizeBoard);
+        window.addEventListener('load', resizeBoard)
+    </script>
+</body>
+</html>

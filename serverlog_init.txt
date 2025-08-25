@@ -1,0 +1,2 @@
+Chess WebSocket Server started on port 8080
+Connect with WebSocket client to ws://localhost:8080

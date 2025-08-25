@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chess Client — chessground + chess.js</title>
+
+  <!-- === Styles: use the local assets you downloaded from chessground repo === -->
+  <!-- Adjust paths if your assets directory differs -->
+  <link rel="stylesheet" href="asset/base.css">
+  <link rel="stylesheet" href="asset/brown.css">
+  <link rel="stylesheet" href="./asset/cburnett.css">
+
+  <style>
+    :root {
+      --panel-bg: #0f172a; /* slate-900 */
+      --panel-fg: #e2e8f0; /* slate-200 */
+      --accent:   #22c55e; /* green-500 */
+      --danger:   #ef4444; /* red-500 */
+      --muted:    #94a3b8; /* slate-400 */
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji";
+      background: linear-gradient(120deg, #0b1022, #10192f);
+      color: var(--panel-fg);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr 320px;
+      align-items: center;
+    }
+    @media (max-width: 900px) {
+      body {
+        padding: 10px;
+      }
+      .app { grid-template-columns: 1fr; }
+      #eval-bar-container {
+        width: 5px;
+        margin-right: 0;
+        border-radius: 2px;
+      }
+    }
+
+    .panel {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+
+    /* Board container */
+    .board-wrap {
+      flex: 1;
+      padding: 16px;
+
+    }
+    .main-content {
+        display: flex;
+        gap: 5px;
+        align-items: stretch; /* Membuat eval-bar dan papan sama tinggi */
+    }
+
+    #board {
+      width: min(85vw, 640px);
+      height: min(85vw, 640px);
+      max-width: 720px;
+      max-height: 720px;
+      margin: 0 0 0 0;
+      border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+    }
+
+    /* Sidebar */
+    .side {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .clocks {
+      display: grid;
+      gap: 8px;
+    }
+
+    .clock {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.2);
+      background: rgba(2,6,23,0.55);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .clock.active { outline: 2px solid var(--accent); }
+    .clock.dead   { outline: 2px solid var(--danger); }
+
+    .labels {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .btn-row { display:flex; flex-wrap: wrap; gap: 8px; }
+    button {
+      cursor: pointer;
+      border: 1px solid rgba(148,163,184,0.25);
+      background: rgba(2,6,23,0.6);
+      color: var(--panel-fg);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    button:hover { border-color: rgba(226,232,240,0.5); }
+    .btn-accent { background: var(--accent); border-color: transparent; color: #052e16; }
+    .btn-danger { background: var(--danger); border-color: transparent; color: #fff; }
+
+    .log {
+      height: 220px;
+      overflow: auto;
+      border: 1px dashed rgba(148,163,184,0.25);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(2,6,23,0.35);
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+
+    .status {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(2,6,23,0.55);
+      border: 1px solid rgba(148,163,184,0.25);
+      min-height: 44px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap: 10px;
+    }
+
+    /* Promotion modal */
+    .modal {
+      position: fixed; inset: 0; display: none; place-items: center;
+      background: rgba(2,6,23,0.6);
+      backdrop-filter: blur(2px);
+      z-index: 50;
+    }
+    .modal.open { display: grid; }
+    .modal-card {
+      background: var(--panel-bg);
+      color: var(--panel-fg);
+      border: 1px solid rgba(148,163,184,0.25);
+      border-radius: 16px;
+      padding: 16px;
+      min-width: 260px; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+    .promo-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:12px; }
+    .promo-btn { font-size: 18px; padding: 10px 0; }
+    .styled-select { width: 100%; padding: 8px; border-radius: 10px; background: rgba(2,6,23,0.6); color: var(--panel-fg); border: 1px solid rgba(148,163,184,0.25); }
+    .radio-group label { margin-right: 15px; cursor: pointer; }
+    #difficulty-value {
+        display: inline-block; /* Diperlukan agar width berfungsi */
+        width: 25px;           /* Sesuaikan lebarnya agar cukup untuk "20" */
+        text-align: center;    /* Agar angka tetap di tengah */
+    }
+    #eval-bar-container" {
+      width: 14px;
+      background-color: #334155;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-right: 1px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="main-content">
+      <div id="eval-bar-container">
+            <div id="eval-bar" style="width: 100%; height: 50%; background-color: #e2e8f0; transition: height 0.5s ease;"></div>
+      </div>
+      <div class="panel board-wrap">
+        <div id="board" class="chessground wood cburnett coordinates"></div>
+      </div>
+    </div>
+
+    <div id="editor-controls" style="display: none; text-align: center; margin-bottom: 10px;">
+        <h3 style="margin: 0;">Mode Editor Papan</h3>
+        <p style="font-size: 14px; color: var(--muted); margin: 5px 0 10px 0;">Atur posisi bidak, lalu mulai permainan dari sini.</p>
+        <button id="btn-play-from-fen" class="btn-accent">Mainkan Posisi Ini vs AI</button>
+    </div>
+
+    <aside class="panel side">
+        <div class="clocks">
+            <div id="clock-black" class="clock">
+                <div class="labels">⚫ Hitam</div>
+                <div id="time-black">05:00.0</div>
+            </div>
+            <div id="clock-white" class="clock active">
+                <div class="labels">⚪ Putih</div>
+                <div id="time-white">05:00.0</div>
+            </div>
+        </div>
+
+        <div class="status" id="status">Siap bermain. Putih jalan dulu.</div>
+        <div class="time-control" style="margin-bottom: 12px;">
+            <label for="time-format" style="font-size: 14px; color: var(--muted);">Format Waktu:</label>
+            <select id="time-format" style="width: 100%; padding: 8px; border-radius: 10px; background: rgba(2,6,23,0.6); color: var(--panel-fg); border: 1px solid rgba(148,163,184,0.25);">
+                <option value="1+0">Bullet (1 menit)</option>
+                <option value="3+2" selected>Blitz (3 menit + 2 detik)</option>
+                <option value="10+5">Rapid (10 menit + 5 detik)</option>
+                <option value="30+20">Classical (30 menit + 20 detik)</option>
+            </select>
+        </div>
+        <div class="btn-row">
+            <button id="btn-new" class="btn-accent">Game Baru</button>
+            <button id="btn-ai" style="background-color:#3b82f6;">Main Lawan AI</button>
+            <button id="btn-undo">Undo</button>
+            <button id="btn-resign" class="btn-danger">Resign</button>
+        </div>
+        <div class="lobby">
+            <h4 style="margin: 0 0 8px 0; font-weight: 600;">Lobi (Game Menunggu)</h4>
+            <div id="lobby-games" class="log" style="height: 100px; min-height: 50px;">
+                <span style="color: var(--muted);">Tidak ada game yang menunggu...</span>
+            </div>
+        </div>
+        <div class="log" id="log"></div>
+
+        <div class="log" id="log"></div>
+
+        <div class="status" style="font-size:13px">
+            <span>WS:</span>
+            <span id="ws-status">Disconnected</span>
+        </div>
+    </aside>
+  </div>
+
+  <!-- Promotion Modal -->
+  <div class="modal" id="promo-modal" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div>Pilih promosi</div>
+      <div class="promo-grid">
+        <button class="promo-btn" data-piece="q">♛</button>
+        <button class="promo-btn" data-piece="r">♜</button>
+        <button class="promo-btn" data-piece="b">♝</button>
+        <button class="promo-btn" data-piece="n">♞</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal" id="ai-setup-modal">
+    <div class="modal-card" style="min-width: 320px;">
+        <h3 style="margin-top:0;">Pengaturan Game vs AI</h3>
+
+        <div class="setting-group" style="margin-bottom: 15px;">
+            <label for="ai-time-format">Format Waktu:</label>
+            <select id="ai-time-format" class="styled-select">
+                <option value="1+0">Bullet (1 menit)</option>
+                <option value="3+2" selected>Blitz (3 menit + 2 detik)</option>
+                <option value="10+5">Rapid (10 menit + 5 detik)</option>
+                <option value="999+0">Tak Terbatas</option>
+            </select>
+        </div>
+
+        <div class="setting-group" style="margin-bottom: 15px;">
+            <label>Bermain Sebagai:</label>
+            <div class="radio-group">
+                <input type="radio" id="ai-color-white" name="ai-color" value="white" checked> <label for="ai-color-white">⚪ Putih</label>
+                <input type="radio" id="ai-color-black" name="ai-color" value="black"> <label for="ai-color-black">⚫ Hitam</label>
+                <input type="radio" id="ai-color-random" name="ai-color" value="random"> <label for="ai-color-random">🎲 Acak</label>
+            </div>
+        </div>
+
+        <div class="setting-group" style="margin-bottom: 20px;">
+            <label for="ai-difficulty">Tingkat Kesulitan (Depth): <span id="difficulty-value">15</span></label>
+            <input type="range" id="ai-difficulty" min="1" max="20" value="15" style="width: 100%;">
+        </div>
+
+        <div class="btn-row" style="justify-content: space-between;">
+            <button id="btn-open-editor">Atur Papan</button>
+            <button id="btn-ai-start" class="btn-accent">Mulai Bermain</button>
+        </div>
+      </div>
+    </div>
+
+  <!-- === Scripts (ES Modules) === -->
+  <script type="module">
+      import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.0.0/+esm';
+      import { Chessground } from 'https://unpkg.com/chessground@9.2.1/dist/chessground.min.js';
+
+      // --- Config waktu ---
+      const BASE_MINUTES = 5;
+      const INCREMENT_MS = 0;
+
+      // --- State ---
+      const game = new Chess();
+      let board = null;
+      let turn = 'w';
+      let myColor = null;
+      let fenBeforeMove = null;
+      const stockfish_player = new Worker('js/stockfish-engine.js'); 
+      const stockfish_evaluator = new Worker('js/stockfish-engine.js');
+      let isStockfishReady = false;
+      let isEvaluatorReady = false;
+      let isEditActive = false;
+            // --- State untuk AI & Editor ---
+      let isAiActive = false;
+      let stockfishDepth = 15;
+      let customFen = null; // Untuk menyimpan FEN dari editor
+
+      // Timers in ms
+      let timeW = BASE_MINUTES * 60 * 1000;
+      let timeB = BASE_MINUTES * 60 * 1000;
+      let timerId = null;
+      let lastTick = performance.now();
+
+      // DOM
+      const elBoard = document.getElementById('board');
+      const elLog = document.getElementById('log');
+      const elStatus = document.getElementById('status');
+      const elWS = document.getElementById('ws-status');
+      const elCw = document.getElementById('time-white');
+      const elCb = document.getElementById('time-black');
+      const boxW = document.getElementById('clock-white');
+      const boxB = document.getElementById('clock-black');
+      const boardWrap = document.querySelector('.board-wrap'); // Dapatkan referensi pembungkus papan
+      const aiSetupModal = document.getElementById('ai-setup-modal');
+      const difficultySlider = document.getElementById('ai-difficulty');
+      const difficultyValue = document.getElementById('difficulty-value');
+      const editorControls = document.getElementById('editor-controls');
+      const evalBar = document.getElementById('eval-bar');
+
+
+      const promoModal = document.getElementById('promo-modal');
+      let pendingPromotionMove = null;
+      // Promotion logic is handled by chess.js `move` command for simplicity now
+
+      // Utils
+      function fmt(ms) {
+          const neg = ms < 0; ms = Math.max(0, ms);
+          const ds = Math.floor(ms / 100) % 10;
+          const s = Math.floor(ms / 1000) % 60;
+          const m = Math.floor(ms / 60000);
+          return `${neg ? '-' : ''}${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${ds}`;
+      }
+
+      function log(line) {
+          elLog.textContent += line + "\n";
+          elLog.scrollTop = elLog.scrollHeight;
+      }
+
+      function updateClocksUI() {
+          elCw.textContent = fmt(timeW);
+          elCb.textContent = fmt(timeB);
+          boxW.classList.toggle('active', turn === 'w');
+          boxB.classList.toggle('active', turn === 'b');
+          boxW.classList.toggle('dead', timeW <= 0);
+          boxB.classList.toggle('dead', timeB <= 0);
+      }
+
+      function startTicking() {
+          stopTicking();
+          lastTick = performance.now();
+          timerId = setInterval(() => {
+              const now = performance.now();
+              const dt = now - lastTick;
+              lastTick = now;
+              if (turn === 'w') timeW -= dt; else timeB -= dt;
+              updateClocksUI();
+
+              // =======================================================
+              // ▼▼▼ LOGIKA BARU: KLAIM OTOMATIS ▼▼▼
+              // =======================================================
+              // Cek apakah waktu lawan sudah habis dari perspektif kita
+              const opponentTime = (myColor === 'white') ? timeB : timeW;
+
+              if (opponentTime <= 0) {
+                  log('[TIMEOUT] Waktu lawan habis, mengirim klaim otomatis ke server...');
+
+                  // Langsung kirim pesan klaim ke server
+                  sendWS({ type: 'claimTimeout' });
+
+                  // Hentikan semua proses timer di sisi kita setelah klaim dikirim.
+                  // Kita akan menunggu respons 'gameEnded' dari server.
+                  stopTicking();
+              }
+
+          }, 100);
+      }
+
+      function stopTicking() {
+          if (timerId) clearInterval(timerId);
+          timerId = null;
+      }
+
+      function updateBoard() {
+          // Sync FEN on board + turn + clocks highlighting
+          const hist = game.history({ verbose: true });
+          const dlastMove = hist.length ? [hist[hist.length - 1].from, hist[hist.length - 1].to] : undefined;
+          turn = game.turn();
+          log(turn);
+          board.set({ fen: game.fen(), lastMove: dlastMove });
+          
+          updateClocksUI();
+          elStatus.textContent = `${turn === 'w' ? 'Putih' : 'Hitam'} jalan${game.inCheck ? ' (CHECK!)' : ''}`;
+      }
+
+      function sendMoveToServer(from, to, promotion = null) {
+          const moveData = {
+              type: 'move',
+              fromRow: squareToRC(from).row, fromCol: squareToRC(from).col,
+              toRow: squareToRC(to).row, toCol: squareToRC(to).col
+          };
+          if (promotion) {
+              moveData.promotion = promotion;
+          }
+          sendWS(moveData);
+          stopTicking();
+      }      
+
+      // Di dalam file index_cg.html
+      // Ganti seluruh fungsi onAfterMove Anda dengan versi ini
+
+      function onAfterMove(orig, dest) {
+        if(!isEditActive){
+          const piece = game.get(orig);
+          const isPawn = piece && piece.type === 'p';
+          const isPromotionRank = (piece.color === 'w' && dest[1] === '8') || 
+                                  (piece.color === 'b' && dest[1] === '1');
+
+          if (isPawn && isPromotionRank) {
+              // Jika ya, JANGAN langsung gerak. Simpan langkahnya dan tampilkan modal.
+              pendingPromotionMove = { from: orig, to: dest };
+              promoModal.classList.add('open');
+              // Batalkan gerakan di papan sementara, akan dieksekusi setelah memilih bidak promosi
+              board.set({ fen: game.fen() });
+              return; // Hentikan fungsi di sini
+          }
+          let move;
+          try {
+              move = game.move({ from: orig, to: dest, promotion: 'q' });
+
+              if (move === null) {
+                  board.set({ 
+                      fen: game.fen(), turnColor: myColor,
+                      movable: { color: myColor, dests: new Map() } // FIX: Kosongkan dan hitung ulang 'dests'
+                  });
+                  return;
+              }
+
+          } catch (e) {
+              log("[ERROR-LOCAL] Gerakan ilegal terdeteksi: " + e.message);
+              log(`FEN Terakhir yang Sah: ${game.fen()}`);
+              
+              // ▼▼▼ UBAH BARIS INI JUGA ▼▼▼
+              board.set({ 
+                  fen: game.fen(), turnColor: myColor,
+                  movable: { color: myColor, dests: new Map() } // FIX: Kosongkan dan hitung ulang 'dests'
+              });
+              return;
+          }
+          requestEvaluation();
+          updateBoard();
+          
+          if (isAiActive) {
+              // === MODE AI ===
+              // Tidak ada yang dikirim ke server.
+              if (game.isGameOver()) {
+                  endCheck();
+              } else {
+                  elStatus.textContent = 'AI sedang berpikir...';
+                  setTimeout(askStockfishToMove, 250);
+              }
+          } else {
+              // === MODE ONLINE ===
+              // Hanya di sini kita mengirim gerakan ke server.
+              sendMoveToServer(orig, dest, move.promotion);
+          }
+        }
+      }
+
+      // --- Helper: konversi antara (row,col) <-> algebraic square (e2) ---
+      const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      function endCheck() {
+          if (!game.isGameOver()) return false;
+
+          stopTicking();
+          board.set({ movable: { color: null } }); // Nonaktifkan gerakan lebih lanjut
+
+          let statusText = "Game Selesai.";
+          let reason = "unknown";
+
+          if (game.isCheckmate()) {
+              const winner = turn === 'w' ? 'Hitam' : 'Putih'; // Yang giliran jalan adalah yang kalah
+              statusText = `Checkmate! Pemenang: ${winner}.`;
+              reason = "checkmate";
+          }
+          else if (game.isStalemate()) { statusText = "Stalemate — Remis."; reason = "stalemate"; }
+          else if (game.isThreefoldRepetition()) { statusText = "Remis — Tiga Kali Pengulangan."; reason = "threefold"; }
+          else if (game.isInsufficientMaterial()) { statusText = "Remis — Materi Tidak Cukup."; reason = "insufficient"; }
+
+          elStatus.textContent = statusText;
+          log(`[GAME END] ${statusText}`);
+
+          // Idealnya, client mengirim pesan ini agar server bisa memverifikasi dan menyiarkan `gameEnded`
+          // sendWS({ type: 'gameOver', reason: reason, winner: turn === 'w' ? 'b' : 'w' });
+
+          return true;
+      }
+
+      function rcToSquare(row, col) {
+          // row: 0..7 where 0 = rank8, 7 = rank1
+          const file = files[col];
+          const rank = 8 - row;
+          return file + String(rank);
+      }
+
+      function squareToRC(square) {
+          const file = square[0];
+          const rank = Number(square[1]);
+          const col = files.indexOf(file);
+          const row = 8 - rank;
+          return { row, col };
+      }
+
+      // --- WebSocket config (set ke port sesuai main.cpp) ---
+      const WS_URL = "ws://192.168.1.2:9001";
+      let socket = null;
+
+      function connectWS() {
+          if (!WS_URL) { elWS.textContent = 'Disabled'; return; }
+          socket = new WebSocket(WS_URL);
+          elWS.textContent = 'Connecting…';
+
+          socket.onopen = () => {
+              elWS.textContent = 'Connected';
+              log('[WS] connected to server');
+          };
+
+          socket.onclose = (ev) => {
+              elWS.textContent = 'Disconnected';
+              log('[WS] disconnected');
+              stopTicking();
+          };
+
+          socket.onerror = (ev) => {
+              elWS.textContent = 'Error';
+              console.warn('WS error', ev);
+          };
+
+          socket.onmessage = (ev) => {
+              let msg;
+              try { msg = JSON.parse(ev.data); }
+              catch (e) { console.warn('invalid json from server', ev.data); return; }
+
+              log('[WS RECV] ' + JSON.stringify(msg)); // Log untuk debugging
+
+              if (msg.type === 'boardUpdate' || msg.type === 'newGame' || msg.type === 'rejoinSuccess') {
+                  // ... (logika ini sama seperti sebelumnya, tidak perlu diubah)
+                  if (msg.gameState) {
+                      // Ambil data penting dari server
+                      const serverFen = boardMatrixToFEN(msg.gameState.board, msg.gameState.currentPlayer, msg.gameState.enPassant);
+                      const currentTurnColor = msg.gameState.currentPlayer; // "white" atau "black"
+                      const isMyTurn = myColor === currentTurnColor;
+                      
+
+                      if (serverFen) {
+                          game.load(serverFen);
+                          if (endCheck()) {
+                              return; // Hentikan eksekusi jika game sudah berakhir
+                          }
+
+                          // Tentukan warna bidak yang boleh bergerak
+                          const movableColor = isMyTurn ? myColor : null;
+
+                          // Ambil data langkah terakhir jika ada
+                          const dlastMove = msg.lastMove ?
+                              [rcToSquare(msg.lastMove.fromRow, msg.lastMove.fromCol), rcToSquare(msg.lastMove.toRow, msg.lastMove.toCol)] :
+                              undefined;
+
+                          // Update papan catur visual (Chessground) dalam satu perintah
+                          board.set({
+                              orientation: myColor,
+                              fen: game.fen(),
+                              turnColor: currentTurnColor,
+                              lastMove: dlastMove,
+                              movable: {
+                                  color: movableColor, // <-- LOGIKA UTAMA DI SINI
+                                  dests: new Map() // Kosongkan dests agar dihitung ulang
+                              }
+                          });
+
+                          // Update elemen UI lainnya (jam, status, dll.)
+                          timeW = msg.gameState.whiteTime || 0;
+                          timeB = msg.gameState.blackTime || 0;
+                          turn = game.turn();
+                          updateClocksUI();
+                          requestEvaluation();
+
+                          if (isMyTurn) {
+                              elStatus.textContent = "Giliran Anda!";
+                          } else {
+                              elStatus.textContent = "Menunggu lawan...";
+                          }
+
+                          if (msg.gameState.gameActive) {
+                              startTicking();
+                          } else {
+                              stopTicking();
+                          }
+                      }
+                  }
+              }
+              else if (msg.type === 'playerAssigned') {
+                  log(`[WS] You are assigned as ${msg.color} in game ${msg.gameId}`);
+
+                  // Simpan warna kita ke variabel global
+                  myColor = msg.color === 'white' ? 'white' : 'black';
+
+            
+                  sessionStorage.setItem('gameId', msg.gameId);
+                  sessionStorage.setItem('playerColor', myColor);
+              }
+              // ▼▼▼ TAMBAHKAN BLOK "ELSE IF" DI BAWAH INI ▼▼▼
+              else if (msg.type === 'lobbyUpdate') {
+                  const lobbyContainer = document.getElementById('lobby-games');
+                  lobbyContainer.innerHTML = ''; // Kosongkan daftar lama
+
+                  if (msg.games && msg.games.length > 0) {
+                      msg.games.forEach(game => {
+                          const gameButton = document.createElement('button');
+                          gameButton.textContent = `Gabung ${game.id} (${game.time})`;
+                          gameButton.style.width = '100%';
+                          gameButton.style.marginBottom = '5px';
+                          gameButton.onclick = () => {
+                              log(`--- Mencoba bergabung ke ${game.id} ---`);
+                              sendWS({ type: 'joinGame', gameId: game.id });
+                              // Sembunyikan lobi setelah mencoba join
+                              document.querySelector('.lobby').style.display = 'none';
+                          };
+                          lobbyContainer.appendChild(gameButton);
+                      });
+                  } else {
+                      lobbyContainer.innerHTML = '<span style="color: var(--muted);">Tidak ada game yang menunggu...</span>';
+                  }
+              }
+              // ▲▲▲ BATAS BLOK YANG DITAMBAHKAN ▲▲▲
+              else if (msg.type === 'gameStart') {
+                  log('[WS] ' + (msg.message || 'Game started!'));
+                  elStatus.textContent = 'Game dimulai. Putih jalan.';
+                  // Sembunyikan lobi saat game kita dimulai
+                  document.querySelector('.lobby').style.display = 'none';
+                  startTicking();
+              }
+              else if (msg.type === 'gameEnded') {
+                  const lobbyContainer = document.getElementById('lobby-games');
+                  // ... (logika ini sama seperti sebelumnya)
+                  log('[WS] Game ended: ' + (msg.reason || 'Unknown reason'));
+                  if (msg.winner) {
+                      const winnerName = msg.winner === 'white' ? 'Putih' : 'Hitam';
+                      elStatus.textContent = `Game Selesai. Pemenang: ${winnerName} (${msg.reason}).`;
+                  } else {
+                      elStatus.textContent = `Game Selesai — Remis (${msg.reason}).`;
+                  }
+                  board.set({ movable: { color: null } });
+                  stopTicking();
+                  // Tampilkan lagi lobi setelah game selesai
+                  document.querySelector('.lobby').style.display = 'block';
+                  lobbyContainer.innerHTML = '<span>Mencari game lain...</span>';
+              }
+              else if (msg.type === 'error') {
+                  const errorMessage = msg.message || JSON.stringify(msg);
+                  log('[WS][ERROR] ' + errorMessage);
+                  elStatus.textContent = `Error: ${errorMessage}`;
+
+                  // --- LOGIKA ROLLBACK ---
+                  // Jika server menolak langkah kita, kembalikan papan ke state sebelumnya.
+                  if (errorMessage === "Invalid move" && fenBeforeMove) {
+                      log('[ROLLBACK] Server menolak langkah. Mengembalikan papan.');
+                      game.load(fenBeforeMove); // Kembalikan state di chess.js
+                      board.set({ fen: game.fen() }); // Update UI sesuai state yang dikembalikan
+
+                      // Beri tahu pengguna
+                      elStatus.textContent = "Langkah ditolak oleh server!";
+                      startTicking(); // Nyalakan kembali jam kita karena giliran belum berganti
+                  }
+              }
+              else {
+                  log('[WS] unknown message type: ' + msg.type);
+              }
+          };
+      }
+
+      // send helper
+      function sendWS(obj) {
+          if (socket && socket.readyState === 1) {
+              const msg = JSON.stringify(obj);
+              log('[WS SEND] ' + msg);
+              socket.send(msg);
+          }
+      }
+
+      //time control
+      function getSelectedTimeControl() {
+          const select = document.getElementById('time-format');
+          const [minutes, incrementSeconds] = select.value.split('+').map(Number);
+          return {
+              initialMs: minutes * 60 * 1000,
+              incrementMs: incrementSeconds * 1000
+          };
+      }
+
+      // Convert server board matrix to FEN (basic mapping)
+      function boardMatrixToFEN(matrix, currentPlayer, enPassantSquare) {
+          if (!matrix || matrix.length !== 8) return null;
+          let ranks = [];
+          for (let r = 0; r < 8; ++r) {
+              let emptyCount = 0;
+              let fenRank = '';
+              for (let c = 0; c < 8; ++c) {
+                  const cell = matrix[r][c] || '';
+                  if (cell === '') {
+                      emptyCount++;
+                  } else {
+                      if (emptyCount > 0) { fenRank += String(emptyCount); emptyCount = 0; }
+                      fenRank += cell;
+                  }
+              }
+              if (emptyCount > 0) fenRank += String(emptyCount);
+              ranks.push(fenRank);
+          }
+          const turn = (currentPlayer === 'white') ? 'w' : 'b';
+          // We don't have castling/enpassant/halfmove/fullmove in server state -> use defaults from chess.js
+          const currentFenParts = game.fen().split(' ');
+          const castling = currentFenParts[2] || '-';
+          const enpassant = enPassantSquare || '-';
+
+          return `${ranks.join('/')} ${turn} ${castling} ${enpassant} 0 1`;
+      }
+      function startGameVsAi(settings) {
+          aiSetupModal.classList.remove('open');
+          log(`--- Memulai game vs AI | Warna: ${settings.color}, Depth: ${settings.difficulty} ---`);
+
+          isAiActive = true;
+          myColor = settings.color;
+          stockfishDepth = settings.difficulty;
+
+          // Atur jam sesuai pilihan
+          timeW = settings.timeControl.initialMs;
+          timeB = settings.timeControl.initialMs;
+          // (Logika increment untuk game AI bisa ditambahkan jika diinginkan)
+
+          // Muat posisi: FEN kustom dari editor atau posisi awal
+          if (settings.fen) {
+              game.load(settings.fen);
+          } else {
+              game.reset();
+          }
+          
+          const turn = game.turn() === 'w' ? 'white' : 'black';
+
+          board.set({
+              fen: game.fen(),
+              orientation: myColor,
+              turnColor: turn,
+              movable: {
+                  color: myColor === turn ? myColor : null,
+                  dests: new Map(),
+              }
+          });
+          updateClocksUI();
+          startTicking();
+          
+          const aiColor = (myColor === 'white') ? 'black' : 'white';
+          log(`[AI] Anda bermain sebagai ${myColor}. AI sebagai ${aiColor}.`);
+          
+          if (turn === aiColor) {
+              elStatus.textContent = 'AI sedang berpikir...';
+              askStockfishToMove();
+          } else {
+              elStatus.textContent = 'Giliran Anda!';
+          }
+      }
+
+      function askStockfishToMove() {
+          if (!isStockfishReady) return;
+          elStatus.textContent = 'AI sedang berpikir dalam ask...';
+          
+          const fen = game.fen();
+          stockfish_player.postMessage(`position fen ${fen}`);
+          // Gunakan nilai kesulitan dari slider
+          stockfish_player.postMessage(`go depth ${stockfishDepth}`);
+      } 
+
+      function requestEvaluation() {
+          // Hanya minta evaluasi jika Stockfish siap dan game sedang berjalan
+          if (!isEvaluatorReady || game.isGameOver()) {
+              evalBar.style.height = '50%'; // Reset ke posisi netral jika game berakhir
+              return;
+          }
+          
+          const fen = game.fen();
+          stockfish_evaluator.postMessage(`position fen ${fen}`);
+          stockfish_evaluator.postMessage('go depth 10');
+      }  
+      function updateEvalBar(type, value) {
+          let advantageWhite = 0; // Skor dalam centipawn, positif = Putih unggul
+
+          if (type === 'cp') {
+              advantageWhite = value;
+          } else if (type === 'mate') {
+              // Jika skakmat, beri nilai sangat tinggi
+              advantageWhite = value > 0 ? 1000 : -1000;
+          }
+          
+          // Jika giliran Hitam, balik nilainya
+          if (game.turn() === 'b') {
+              advantageWhite = -advantageWhite;
+          }
+
+          // Batasi nilai agar bar tidak terlalu ekstrem
+          const cappedAdvantage = Math.max(-1000, Math.min(1000, advantageWhite));
+
+          // Konversi skor (-1000 s/d 1000) menjadi persentase tinggi (0% s/d 100%)
+          // 50% adalah posisi netral (skor 0)
+          const whitePercentage = 50 + (cappedAdvantage / 1000) * 50;
+          
+          evalBar.style.height = `${whitePercentage}%`;
+      }      
+
+      stockfish_player.onmessage = function(event) {
+          // Pesan dari Worker ada di dalam properti 'data'
+          const message = event.data; 
+
+          if (typeof message !== 'string') return;
+
+          // Menangani balasan langkah terbaik dari AI
+          if (message.startsWith('bestmove')) {
+              const bestMoveUci = message.split(' ')[1];
+              const from = bestMoveUci.substring(0, 2);
+              const to = bestMoveUci.substring(2, 4);
+              const promotion = bestMoveUci.length === 5 ? bestMoveUci.substring(4, 5) : undefined;
+              
+              const move = game.move({ from, to, promotion });
+
+              if (move) {
+                  board.set({
+                      fen: game.fen(),
+                      turnColor: game.turn() === 'w' ? 'white' : 'black',
+                      lastMove: [from, to],
+                      movable: {
+                          color: myColor,
+                          dests: new Map()
+                      }
+                  });
+                  const currentTurn = game.turn() === 'w' ? 'white' : 'black';
+                  turn = game.turn(); // Update variabel giliran global
+                  updateClocksUI(); // Update juga tampilan jam
+                  startTicking();
+                  elStatus.textContent = 'Giliran Anda!';
+
+                  if (endCheck()) {
+                      return;
+                  }
+                  requestEvaluation();
+              }
+          }
+          // =======================================================
+          // ▼▼▼ INILAH BAGIAN YANG HILANG ▼▼▼
+          // =======================================================
+          // Menangani sinyal "siap" dari Stockfish
+          else if (message === 'readyok') {
+              isStockfishReady = true;
+              log("[STOCKFISH] Engine telah siap.");
+          }
+      };
+
+      stockfish_evaluator.onmessage = function(event) {
+          const message = event.data;
+          if (typeof message !== 'string') return;
+          if (message.startsWith('info depth')) {
+              const parts = message.split(' ');
+              const scoreTypeIndex = parts.indexOf('score') + 1;
+              
+              if (scoreTypeIndex === 0 || scoreTypeIndex >= parts.length) return;
+
+              const scoreType = parts[scoreTypeIndex]; // "cp" atau "mate"
+              const scoreValue = parseInt(parts[scoreTypeIndex + 1], 10);
+
+              updateEvalBar(scoreType, scoreValue);
+          } else if (message === 'readyok') {
+            isEvaluatorReady = true;
+            log("[EVALUATOR] Engine evaluator telah siap.");
+            requestEvaluation(); // Langsung evaluasi posisi awal saat siap
+          }
+      };
+
+      // Kirim perintah inisialisasi awal ke Stockfish
+      stockfish_player.postMessage('uci');
+      stockfish_evaluator.postMessage('uci');
+      stockfish_player.postMessage('isready'); // Perintah ini yang akan memicu balasan 'readyok'
+      stockfish_evaluator.postMessage('isready');
+
+      // Init Board
+      board = Chessground(elBoard, {
+          movable: {
+              color: "white",
+              dests: new Map(),
+              events: {
+                  after: onAfterMove
+              }
+          },
+          highlight: { lastMove: true, check: true },
+          draggable: { showGhost: true },
+      });
+
+      // Buttons
+      document.getElementById('btn-ai').addEventListener('click', () => {
+          isAiActive = false; // Reset status
+          customFen = null;   // Reset FEN kustom
+          aiSetupModal.classList.add('open');
+      });
+
+      document.getElementById('btn-new').addEventListener('click', () => {
+          isAiActive = false;
+          sendWS({
+              type: 'createGame',
+              timeControl: getSelectedTimeControl() // Kirim objek time control
+          });
+          lobbyDiv.style.display = 'none';
+      });
+
+      document.getElementById('btn-undo').addEventListener('click', () => {
+          // The C++ server does not have an undo implementation.
+          // We can log a message to inform the user.
+          log('[INFO] Undo is not supported by the server.');
+          // Or disable the button entirely: document.getElementById('btn-undo').disabled = true;
+      });
+
+      document.getElementById('btn-resign').addEventListener('click', () => {
+          stopTicking();
+          const loser = turn === 'w' ? 'Putih' : 'Hitam';
+          const winner = turn === 'w' ? 'Hitam' : 'Putih';
+          elStatus.textContent = `${loser} resigns. ${winner} wins.`;
+          board.set({ movable: { color: null } });
+          log('[END] Resigned');
+          // Send the correct message type to the server
+          if(!isAiActive) { sendWS({ type: 'resign' });}
+      });
+
+      document.getElementById('btn-open-editor').addEventListener('click', () => {
+          isEditActive = true;
+          aiSetupModal.classList.remove('open');
+          editorControls.style.display = 'block';
+          boardWrap.style.gridColumn = '1 / -1'; 
+          log('[EDITOR] Masuk ke mode editor papan.');
+          
+          board.set({
+              fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1', // Papan kosong
+              movable: {
+                  free: true, // AKTIFKAN EDIT MODE
+                  color: 'both',
+                  dests: new Map()
+              }
+          });
+          setTimeout(() => board.redraw(), 50);
+      });
+
+      document.getElementById('btn-play-from-fen').addEventListener('click', () => {
+          customFen = board.getFen(); // Simpan FEN dari papan
+          const piecePlacement = board.getFen();
+          customFen = `${piecePlacement} w KQkq - 0 1`;
+          editorControls.style.display = 'none';
+          board.set({ draggable: { showGhost: true } });
+          boardWrap.style.gridColumn = ''; 
+          log(`[EDITOR] Posisi custom disimpan: ${customFen}`);
+          aiSetupModal.classList.add('open'); // Buka lagi modal untuk pilih warna/kesulitan
+      });
+
+      document.getElementById('btn-ai-start').addEventListener('click', () => {
+          // Kumpulkan semua pengaturan dari modal
+          if(isEditActive) {isEditActive = false}
+          const timeFormat = document.getElementById('ai-time-format').value;
+          let selectedColor = document.querySelector('input[name="ai-color"]:checked').value;
+          const difficulty = parseInt(difficultySlider.value, 10);
+          
+          // Proses pilihan warna acak
+          if (selectedColor === 'random') {
+              selectedColor = Math.random() > 0.5 ? 'white' : 'black';
+          }
+
+          const [minutes, incrementSeconds] = timeFormat.split('+').map(Number);
+          const timeControl = {
+              initialMs: minutes * 60 * 1000,
+              incrementMs: incrementSeconds * 1000
+          };
+
+          // Mulai game dengan semua pengaturan
+          startGameVsAi({
+              color: selectedColor,
+              difficulty: difficulty,
+              timeControl: timeControl,
+              fen: customFen // Gunakan FEN dari editor jika ada, jika tidak, null
+          });
+      });
+
+      difficultySlider.addEventListener('input', () => {
+          difficultyValue.textContent = difficultySlider.value;
+      });
+      // Tambahkan event listener ini di dekat listener tombol lainnya
+
+      // Ganti seluruh event listener promoModal Anda dengan ini
+
+      promoModal.addEventListener('click', (e) => {
+          const promoBtn = e.target.closest('.promo-btn');
+          if (!promoBtn || !pendingPromotionMove) return;
+
+          const promotionPiece = promoBtn.dataset.piece;
+          let move;
+
+          // Selalu tutup modal setelah pilihan dibuat, tidak peduli hasilnya
+          promoModal.classList.remove('open');
+
+          try {
+              // Coba lakukan gerakan promosi
+              move = game.move({ 
+                  from: pendingPromotionMove.from, 
+                  to: pendingPromotionMove.to, 
+                  promotion: promotionPiece
+              });
+
+              // Jika move null (ilegal karena tetap skak), tangani sebagai error
+              if (move === null) {
+                  throw new Error("Langkah promosi tidak sah (Raja masih dalam bahaya).");
+              }
+
+          } catch (err) {
+              // Jika chess.js melempar error, tangkap di sini
+              log(`[INVALID-LOCAL] ${err.message}`);
+              board.set({ fen: game.fen(), turnColor: myColor }); // Reset papan ke posisi sebelum mencoba promosi
+              pendingPromotionMove = null;
+              return; // Hentikan eksekusi
+          }
+          
+          // Jika kode mencapai titik ini, berarti gerakan promosi VALID
+          log(`[VALID-LOCAL] Promosi ke ${promotionPiece}. Gerakan ${move.san} sah.`);
+          updateBoard();
+          playSound(move);
+
+          // Tentukan alur selanjutnya (AI atau Online)
+          if (isAiActive) {
+              if (game.isGameOver()) { endCheck(); } 
+              else {
+                  elStatus.textContent = 'AI sedang berpikir...';
+                  setTimeout(askStockfishToMove, 250);
+              }
+          } else {
+              sendMoveToServer(move.from, move.to, move.promotion);
+          }
+
+          // Reset langkah yang tertunda
+          pendingPromotionMove = null;
+      });   
+
+      // Start
+      updateClocksUI();
+      connectWS();
+  </script>
+</body>
+</html>

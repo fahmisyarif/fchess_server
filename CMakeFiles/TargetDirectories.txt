@@ -1,0 +1,3 @@
+C:/Users/Fahmi/source/repos/fchess_server/CMakeFiles/fchess_server.dir
+C:/Users/Fahmi/source/repos/fchess_server/CMakeFiles/ALL_BUILD.dir
+C:/Users/Fahmi/source/repos/fchess_server/CMakeFiles/ZERO_CHECK.dir

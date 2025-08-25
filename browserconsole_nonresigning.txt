@@ -1,0 +1,49 @@
+index.html:189 Attempting to connect to server...
+index.html:193 Connected to server (onopen event fired)
+index.html:156 Attempting to show section: lobby
+index.html:159 Hiding lobby. Current display: block
+index.html:161 Hiding waitingRoom. Current display: none
+index.html:163 Hiding gameUIContainer. Current display: none
+index.html:165 Hiding gameOverOverlay. Current display: flex
+index.html:167 After hiding all, gameOverOverlay display: none
+index.html:183 After showing lobby, gameOverOverlay display: none
+index.html:198 Create Game button disabled status after enabling: false
+index.html:217 Message received: {"games":[],"type":"lobbyUpdate"}
+index.html:247 Received message from server: Object
+index.html:217 Message received: {"games":[],"type":"lobbyUpdate"}
+index.html:247 Received message from server: Object
+index.html:217 Message received: {"games":["game_8"],"type":"lobbyUpdate"}
+index.html:247 Received message from server: Object
+index.html:217 Message received: {"color":"black","gameId":"game_8","type":"playerAssigned"}
+index.html:247 Received message from server: Object
+index.html:217 Message received: {"gameState":{"blackTime":300000,"board":[["r","n","b","q","k","b","n","r"],["p","p","p","p","p","p","p","p"],["","","","","","","",""],["","","","","","","",""],["","","","","","","",""],["","","","","","","",""],["P","P","P","P","P","P","P","P"],["R","N","B","Q","K","B","N","R"]],"currentPlayer":"white","gameActive":true,"gameResult":"","whiteTime":300000},"type":"boardUpdate"}
+index.html:247 Received message from server: Object
+index.html:217 Message received: {"gameId":"game_8","message":"Game starting with 2 players!","type":"gameStart"}
+index.html:247 Received message from server: Object
+index.html:156 Attempting to show section: game
+index.html:159 Hiding lobby. Current display: block
+index.html:161 Hiding waitingRoom. Current display: none
+index.html:163 Hiding gameUIContainer. Current display: none
+index.html:165 Hiding gameOverOverlay. Current display: none
+index.html:167 After hiding all, gameOverOverlay display: none
+index.html:183 After showing game, gameOverOverlay display: none
+index.html:217 Message received: {"gameState":{"blackTime":300000,"board":[["r","n","b","q","k","b","n","r"],["p","p","p","p","p","p","p","p"],["","","","","","","",""],["","","","","","","",""],["","","","","P","","",""],["","","","","","","",""],["P","P","P","P","","P","P","P"],["R","N","B","Q","K","B","N","R"]],"currentPlayer":"black","gameActive":true,"gameResult":"","whiteTime":294862},"lastMove":{"fromCol":4,"fromRow":6,"toCol":4,"toRow":4},"type":"boardUpdate"}
+index.html:247 Received message from server: Object
+index.html:217 Message received: {"reason":"resignation","resignedPlayer":"white","type":"gameEnded","winner":"black"}
+index.html:247 Received message from server: Object
+index.html:297 gameEnded received: Object
+index.html:298 playerColor: black
+index.html:327 Explicitly hid gameUIContainer. Current display: none
+index.html:329 Before showSection(gameOver), gameOverOverlay display: none
+index.html:156 Attempting to show section: gameOver
+index.html:159 Hiding lobby. Current display: none
+index.html:161 Hiding waitingRoom. Current display: none
+index.html:163 Hiding gameUIContainer. Current display: none
+index.html:165 Hiding gameOverOverlay. Current display: none
+index.html:167 After hiding all, gameOverOverlay display: none
+index.html:183 After showing gameOver, gameOverOverlay display: flex
+index.html:331 After showSection(gameOver), gameOverOverlay display: flex
+index.html:217 Message received: {"games":[],"type":"lobbyUpdate"}
+index.html:247 Received message from server: Object
+index.html:217 Message received: {"games":[],"type":"lobbyUpdate"}
+index.html:247 Received message from server: Object

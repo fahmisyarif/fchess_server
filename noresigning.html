@@ -1,0 +1,671 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FChess Game</title>
+    <link rel="stylesheet" href="chessboard-1.0.0.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+        .game-container { max-width: 500px; margin: 0 auto; background-color: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        h1 { text-align: center; color: #333; }
+        #myBoard { margin: 0 auto; }
+        .status-container { text-align: center; margin-top: 20px; }
+        #status, #playerDisplay { font-size: 1.1em; font-weight: bold; color: #555; padding: 10px; background-color: #f8f9fa; border-radius: 5px; min-height: 20px; }
+        .controls { text-align: center; margin: 20px 0; }
+        .btn { padding: 10px 20px; margin: 0 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; color: white; }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-success { background-color: #28a745; }
+        .connection-status { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+        .connected { background-color: #28a745; }
+        .disconnected { background-color: #dc3545; }
+        .waiting { background-color: #ffc107; }
+
+        #gameOverOverlay {
+            display: none; /* Hidden by default */
+            position: fixed !important; /* Fixed position to cover entire screen */
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: rgba(0, 0, 0, 0.8) !important; /* Semi-transparent black background */
+            z-index: 99999 !important; /* Very high z-index */
+            display: flex; /* Use flexbox for centering, NO !important */
+            justify-content: center !important;
+            align-items: center !important;
+        }
+
+        #gameOverContent {
+            background-color: red !important; /* Bright red background for visibility */
+            padding: 30px !important;
+            border-radius: 10px !important;
+            text-align: center !important;
+            max-width: 400px !important;
+            color: white !important;
+        }
+
+        #gameOverMessage {
+            color: black !important; /* Ensure message is visible on red background */
+        }
+    </style>
+</head>
+<body>
+    <div id="lobby" class="game-container">
+        <h2>Lobby</h2>
+        <div class="controls">
+            <label for="timeFormat">Time Control:</label>
+            <select id="timeFormat">
+                <option value="300000">5 minutes</option>
+                <option value="180000">3 minutes</option>
+                <option value="60000">1 minute (Bullet)</option>
+            </select>
+            <button id="createGameBtn" class="btn btn-success">Create New Game</button>
+            <button id="clearLocalStorageBtn" class="btn btn-danger">Clear Local Storage</button>
+        </div>
+        <hr>
+        <h4>Or Join an Existing Game:</h4>
+        <div id="gameList" class="controls">
+            <!-- Waiting games will be listed here -->
+        </div>
+        <hr>
+        <div class="controls">
+            <input type="text" id="joinGameId" placeholder="Enter Game ID">
+            <button id="joinGameBtn" class="btn" disabled>Join Game</button>
+        </div>
+    </div>
+
+    <div id="waitingRoom" class="game-container" style="display: none;">
+        <h2>Waiting for Opponent</h2>
+        <p id="waitingMessage"></p>
+    </div>
+
+    <div id="gameUIContainer" class="game-container" style="display: none;">
+        <h1>♔ FChess Game ♚</h1>
+        <div class="status-container">
+            <div id="playerDisplay"><span class="connection-status disconnected"></span>Player: Not connected</div>
+            <div id="status" style="margin-top: 10px;">Connecting to server...</div>
+        </div>
+
+        <!-- Add clock display here -->
+        <div class="clock-container" style="display: flex; justify-content: space-around; margin-bottom: 10px;">
+            <div id="whiteClock" style="font-size: 1.5em; font-weight: bold; color: #000;">White: 05:00</div>
+            <div id="blackClock" style="font-size: 1.5em; font-weight: bold; color: #000;">Black: 05:00</div>
+        </div>
+
+        <div id="myBoard" style="width: 400px; margin-top: 20px;"></div>
+
+        <div class="controls">
+            <button id="resignBtn" class="btn btn-danger" disabled>Resign</button>
+            <button id="newGameBtn" class="btn btn-success" disabled>New Game</button>
+        }
+    </div>
+
+    <!-- New Game Over Overlay -->
+    <div id="gameOverOverlay">
+        <div id="gameOverContent">
+            <h2 id="gameOverMessage"></h2>
+            <button id="backToLobbyBtn" class="btn btn-success">Back to Lobby</button>
+        </div>
+    </div>
+
+    <script src="jquery-3.5.1.min.js"></script>
+    <script src="chessboard-1.0.0.min.js"></script>
+    <script src="chess.js"></script>
+    <script>
+        // --- Global State ---
+        let board = null;
+        let game = new Chess();
+        let socket;
+        let playerColor = null;
+        let gameActive = false;
+        let myGameId = null;
+
+        let whiteTimeRemaining = 0;
+        let blackTimeRemaining = 0;
+        let lastUpdateTime = 0;
+        let clockInterval = null;
+
+        // --- DOM Elements ---
+        const statusEl = $('#status');
+        const playerDisplayEl = $('#playerDisplay');
+        const resignBtn = $('#resignBtn');
+        const newGameBtn = $('#newGameBtn');
+        const connectionIndicator = $('.connection-status');
+
+        const whiteClockEl = $('#whiteClock');
+        const blackClockEl = $('#blackClock');
+
+        const lobbyEl = $('#lobby');
+        const waitingRoomEl = $('#waitingRoom');
+        const waitingMessageEl = $('#waitingMessage');
+        const gameUIContainer = $('#gameUIContainer'); // New ID
+        const createGameBtn = $('#createGameBtn');
+        const joinGameBtn = $('#joinGameBtn');
+        const joinGameIdInput = $('#joinGameId');
+        const timeFormatSelect = $('#timeFormat');
+        const clearLocalStorageBtn = $('#clearLocalStorageBtn');
+
+        const gameOverOverlay = $('#gameOverOverlay');
+        const gameOverMessage = $('#gameOverMessage');
+        const backToLobbyBtn = $('#backToLobbyBtn');
+
+        // --- UI State Management ---
+        function showSection(sectionName) {
+            console.log('Attempting to show section:', sectionName);
+
+            // Hide all sections explicitly
+            console.log('Hiding lobby. Current display:', lobbyEl.css('display'));
+            lobbyEl.css('display', 'none');
+            console.log('Hiding waitingRoom. Current display:', waitingRoomEl.css('display'));
+            waitingRoomEl.css('display', 'none');
+            console.log('Hiding gameUIContainer. Current display:', gameUIContainer.css('display'));
+            gameUIContainer.css('display', 'none');
+            console.log('Hiding gameOverOverlay. Current display:', gameOverOverlay.css('display'));
+            gameOverOverlay.css('display', 'none');
+            console.log('After hiding all, gameOverOverlay display:', gameOverOverlay.css('display')); // Should be 'none'
+
+            switch (sectionName) {
+                case 'lobby':
+                    lobbyEl.css('display', 'block');
+                    break;
+                case 'waitingRoom':
+                    waitingRoomEl.css('display', 'block');
+                    break;
+                case 'game':
+                    gameUIContainer.css('display', 'block');
+                    break;
+                case 'gameOver':
+                    gameOverOverlay.css('display', 'flex'); // Use flex to match CSS
+                    break;
+            }
+            console.log('After showing ' + sectionName + ', gameOverOverlay display:', gameOverOverlay.css('display'));
+        }
+
+        // --- WebSocket Logic ---
+        function connectToServer() {
+            try {
+                console.log('Attempting to connect to server...'); // New log
+                socket = new WebSocket('ws://localhost:8080');
+
+                socket.onopen = () => {
+                    console.log('Connected to server (onopen event fired)'); // New log
+                    setStatus('Connected to server. Create or join a game.');
+                    setConnectionStatus('connected');
+                    showSection('lobby'); // Always show lobby initially
+                    createGameBtn.prop('disabled', false); // Explicitly enable Create Game button
+                    console.log('Create Game button disabled status after enabling:', createGameBtn.prop('disabled')); // New log
+
+                    const storedGameId = localStorage.getItem('myGameId');
+                    const storedPlayerColor = localStorage.getItem('playerColor');
+
+                    if (storedGameId && storedPlayerColor) {
+                        console.log(`Attempting to rejoin game ${storedGameId} as ${storedPlayerColor}`);
+                        socket.send(JSON.stringify({
+                            type: 'rejoinGame',
+                            gameId: storedGameId,
+                            playerColor: storedPlayerColor
+                        }));
+                        setStatus('Rejoining game...');
+                    } else {
+                        // No stored game, just show lobby
+                    }
+                };
+
+                socket.onmessage = (event) => {
+                    console.log('Message received:', event.data); // New log
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleServerMessage(data);
+                    } catch (e) {
+                        console.error('Error parsing message:', e);
+                    }
+                };
+
+                socket.onclose = () => {
+                    console.log('Connection closed (onclose event fired)'); // New log
+                    setStatus('Connection closed. Reconnecting...');
+                    setConnectionStatus('disconnected');
+                    gameActive = false;
+                    updateButtonStates();
+                    setTimeout(connectToServer, 3000); // Reconnect
+                };
+
+                socket.onerror = (error) => {
+                    console.error('WebSocket error (onerror event fired):', error); // New log
+                    setStatus('Connection error.');
+                    setConnectionStatus('disconnected');
+                };
+            } catch (e) {
+                console.error('Failed to connect (catch block):', e); // New log
+                setStatus('Error connecting to server.');
+            }
+        }
+
+        function handleServerMessage(data) {
+            console.log('Received message from server:', data);
+
+            switch (data.type) {
+                case 'playerAssigned':
+                    playerColor = data.color;
+                    myGameId = data.gameId;
+                    localStorage.setItem('myGameId', myGameId); // Store gameId
+                    localStorage.setItem('playerColor', playerColor); // Store playerColor
+                    board.orientation(playerColor);
+                    setConnectionStatus('connected');
+                    playerDisplayEl.html(`<span class="connection-status connected"></span>Player: ${capitalize(playerColor)} (Game: ${myGameId})`);
+                    
+                    if (data.color === 'white') {
+                        showSection('waitingRoom');
+                        waitingMessageEl.text(`Game ${myGameId} has been created. Waiting for another player to join.`);
+                    }
+                    break;
+
+                case 'lobbyUpdate':
+                    const gameList = $('#gameList');
+                    gameList.empty(); // Clear the list
+                    if (data.games && data.games.length > 0) {
+                        data.games.forEach(gameId => {
+                            const gameBtn = $('<button class="btn">Join Game: ' + gameId + '</button>');
+                            gameBtn.on('click', () => {
+                                joinGameIdInput.val(gameId);
+                                joinGameBtn.prop('disabled', false);
+                            });
+                            gameList.append(gameBtn);
+                        });
+                    } else {
+                        gameList.html('<em>No games waiting for players.</em>');
+                    }
+                    break;
+
+                case 'gameStart':
+                    showSection('game');
+                    gameActive = true;
+                    updateButtonStates();
+                    setStatus('Game started! White to move.');
+                    break;
+
+                case 'boardUpdate':
+                    updateGameState(data.gameState);
+                    if (data.lastMove) {
+                        highlightLastMove(data.lastMove);
+                    }
+                    break;
+
+                case 'gameEnded':
+                    console.log('gameEnded received:', data);
+                    console.log('playerColor:', playerColor);
+                    gameActive = false;
+                    updateButtonStates();
+                    let gameEndMessageText = ''; // Renamed to avoid conflict with outer scope
+                    if (data.reason === 'resignation') {
+                        if (data.resignedPlayer === playerColor) {
+                            gameEndMessageText = `Game Over! You lost by resignation.`;
+                        } else {
+                            gameEndMessageText = `Game Over! Your opponent resigned. You win!`;
+                        }
+                    } else if (data.reason === 'disconnect') { // Handle disconnect reason
+                        if (data.disconnectedPlayer === playerColor) {
+                            gameEndMessageText = `Game Over! You disconnected.`;
+                        } else {
+                            gameEndMessageText = `Game Over! Your opponent disconnected. You win!`;
+                        }
+                    }
+                    else {
+                        const winnerText = data.winner === playerColor ? 'You win!' : 'You lose!';
+                        gameEndMessageText = `Game Over: ${winnerText} by ${data.reason}.`;
+                    }
+                    
+                    setStatus(gameEndMessageText); // Still update the main status
+                    gameOverMessage.text(gameEndMessageText); // Set message in overlay
+
+                    localStorage.removeItem('playerColor'); // Clear stored playerColor
+                    
+                    // Explicitly hide the game UI container before showing the overlay
+                    gameUIContainer.css('display', 'none'); // Add this line back
+                    console.log('Explicitly hid gameUIContainer. Current display:', gameUIContainer.css('display')); // New log
+
+                    console.log('Before showSection(gameOver), gameOverOverlay display:', gameOverOverlay.css('display'));
+                    showSection('gameOver'); // Show the game over overlay
+                    console.log('After showSection(gameOver), gameOverOverlay display:', gameOverOverlay.css('display'));
+                    break;
+                
+                case 'newGame':
+                    game.reset();
+                    board.position(game.fen());
+                    gameActive = true;
+                    updateButtonStates();
+                    setStatus("New game started! White's turn.");
+                    break;
+
+                case 'rejoinSuccess':
+                    playerColor = data.color;
+                    myGameId = data.gameId;
+                    // No need to store in localStorage again, it's already there
+                    board.orientation(playerColor);
+                    setConnectionStatus('connected');
+                    playerDisplayEl.html(`<span class="connection-status connected"></span>Player: ${capitalize(playerColor)} (Game: ${myGameId})`);
+
+                    showSection('game'); // Show the game container
+                    gameActive = true; // Assume game is active on rejoin
+                    updateButtonStates();
+                    setStatus('Successfully rejoined game.');
+                    updateGameState(data.gameState); // Update board and clock
+                    break;
+
+                case 'playerDisconnected':
+                    gameActive = false;
+                    updateButtonStates();
+                    setStatus('Opponent disconnected. Waiting...');
+                    // Do not clear localStorage here, as the game is still active for rejoining
+                    // Show waiting room or a message indicating opponent disconnected
+                    showSection('waitingRoom');
+                    waitingMessageEl.text('Your opponent has disconnected. Waiting for them to rejoin.');
+                    break;
+
+                case 'error':
+                    setStatus('Error: ' + data.message);
+                    // If it's an invalid move error, snap the piece back
+                    board.position(game.fen(), false);
+                    // If an error occurs, especially during rejoin, ensure lobby is visible
+                    showSection('lobby');
+                    break;
+            }
+        }
+
+        // --- Game Logic & UI ---
+        function updateGameState(gameState) {
+            // The server's board representation is not a FEN string.
+            // We must convert it to keep our client-side chess.js instance in sync.
+            const fen = serverBoardToFen(gameState.board, gameState.currentPlayer);
+            game.load(fen);
+            board.position(fen);
+            
+            gameActive = gameState.gameActive;
+            updateButtonStates();
+
+            // Synchronize local clock with server time
+            whiteTimeRemaining = gameState.whiteTime;
+            blackTimeRemaining = gameState.blackTime;
+            lastUpdateTime = performance.now(); // Reset last update time
+
+            // Start/stop clock based on game state
+            if (gameActive && !game.game_over()) {
+                startClock();
+            } else {
+                stopClock();
+            }
+
+            // Update clocks (initial display)
+            updateClockDisplay(whiteClockEl, whiteTimeRemaining);
+            updateClockDisplay(blackClockEl, blackTimeRemaining);
+
+            if (!gameActive) {
+                setStatus("Game is over.");
+                return;
+            }
+
+            const turn = game.turn() === 'w' ? 'White' : 'Black';
+            const statusText = playerColor.charAt(0) === game.turn() ? "Your turn" : `Waiting for ${turn}`;
+            setStatus(`${statusText} (${turn} to move})`);
+        }
+
+        function onDragStart(source, piece) {
+            // Prevent moves if the game is over or it's not your turn
+            console.log('onDragStart called:', { source, piece, gameActive, gameOver: game.game_over(), playerColor, gameTurn: game.turn() });
+
+            if (!gameActive) {
+                console.log('Blocked: Game not active');
+                return false;
+            }
+            if (game.game_over()) {
+                console.log('Blocked: Game over');
+                return false;
+            }
+            if (playerColor.charAt(0) !== game.turn()) {
+                console.log('Blocked: Not your turn', { playerColor, gameTurn: game.turn() });
+                return false;
+            }
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1)) {
+                console.log('Blocked: White trying to move black piece');
+                return false;
+            }
+            if ((game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                console.log('Blocked: Black trying to move white piece');
+                return false;
+            }
+            console.log('Drag allowed');
+        }
+
+        function onDrop(source, target) {
+            // Attempt to make a move in the local chess.js instance
+            const move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q' // Always promote to queen for simplicity
+            });
+
+            // If the move is illegal, snap the piece back
+            if (move === null) return 'snapback';
+
+            // If the move is legal locally, send it to the server for final validation
+            const moveData = {
+                type: 'move',
+                gameId: myGameId, // Add gameId
+                ...algebraicToRowCol(source), // fromRow, fromCol
+                ...algebraicToRowCol(target, true) // toRow, toCol
+            };
+            
+            console.log('Sending move:', moveData);
+            socket.send(JSON.stringify(moveData));
+
+            // Check for game over conditions after the move
+            if (game.game_over()) {
+                let reason = "";
+                let winner = "";
+
+                if (game.in_checkmate()) {
+                    reason = "checkmate";
+                    winner = game.turn() === 'w' ? 'black' : 'white'; // The player whose turn it is, is checkmated
+                } else if (game.in_stalemate()) {
+                    reason = "stalemate";
+                    winner = "draw";
+                } else if (game.in_threefold_repetition()) {
+                    reason = "threefold repetition";
+                    winner = "draw";
+                } else if (game.insufficient_material()) {
+                    reason = "insufficient material";
+                    winner = "draw";
+                } else if (game.half_moves >= 100) { // 50-move rule
+                    reason = "50-move rule";
+                    winner = "draw";
+                }
+
+                const gameOverData = {
+                    type: 'gameOver',
+                    gameId: myGameId,
+                    reason: reason,
+                    winner: winner
+                };
+                console.log('Sending gameOver:', gameOverData);
+                socket.send(JSON.stringify(gameOverData));
+            }
+        }
+        
+        function highlightLastMove(lastMove) {
+            // Remove previous highlights
+            $('#myBoard .square-55d63').css('background-color', '');
+            
+            const fromSquare = rowColToAlgebraic(lastMove.fromRow, lastMove.fromCol);
+            const toSquare = rowColToAlgebraic(lastMove.toRow, lastMove.toCol);
+
+            $('#myBoard .square-' + fromSquare).css('background', '#ffb347');
+            $('#myBoard .square-' + toSquare).css('background', '#ffb347');
+        }
+
+        // --- Helper Functions ---
+        function serverBoardToFen(boardData, currentPlayer) {
+            // Converts the server's 2D array into a FEN string.
+            // NOTE: This makes assumptions about castling, en passant, etc.,
+            // as the server does not provide this information.
+            let fen = boardData.map(row => {
+                let empty = 0;
+                let rowFen = '';
+                row.forEach(piece => {
+                    if (piece === '') {
+                        empty++;
+                    } else {
+                        if (empty > 0) {
+                            rowFen += empty;
+                            empty = 0;
+                        }
+                        rowFen += piece;
+                    }
+                });
+                if (empty > 0) rowFen += empty;
+                return rowFen;
+            }).join('/');
+
+            const turn = currentPlayer === 'white' ? 'w' : 'b';
+            // Assume default castling, no en passant, and move counters.
+            fen += ` ${turn} KQkq - 0 1`;
+            return fen;
+        }
+
+        function algebraicToRowCol(alg, isTarget = false) {
+            const col = alg.charCodeAt(0) - 'a'.charCodeAt(0);
+            const row = 8 - parseInt(alg.charAt(1), 10);
+            if (isTarget) {
+                return { toRow: row, toCol: col };
+            }
+            return { fromRow: row, fromCol: col };
+        }
+        
+        function rowColToAlgebraic(row, col) {
+            const file = String.fromCharCode('a'.charCodeAt(0) + col);
+            const rank = 8 - row;
+            return file + rank;
+        }
+
+        function setStatus(message) { statusEl.text(message); }
+        function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+        function setConnectionStatus(status) { connectionIndicator.removeClass('connected waiting disconnected').addClass(status); }
+
+        function updateButtonStates() {
+            resignBtn.prop('disabled', !gameActive);
+            newGameBtn.prop('disabled', false); // Can always offer a new game
+        }
+
+        // --- Clock Management ---
+        function startClock() {
+            if (clockInterval) {
+                clearInterval(clockInterval);
+            }
+            clockInterval = setInterval(updateClock, 100); // Update every 100ms
+        }
+
+        function stopClock() {
+            if (clockInterval) {
+                clearInterval(clockInterval);
+                clockInterval = null;
+            }
+        }
+
+        function updateClock() {
+            if (!gameActive) {
+                stopClock();
+                return;
+            }
+
+            const now = performance.now();
+            const elapsedMs = now - lastUpdateTime; // in milliseconds
+            lastUpdateTime = now;
+
+            // Always decrement the time for the player whose turn it is
+            if (game.turn() === 'w') {
+                whiteTimeRemaining -= elapsedMs;
+                if (whiteTimeRemaining < 0) whiteTimeRemaining = 0;
+            } else {
+                blackTimeRemaining -= elapsedMs;
+                if (blackTimeRemaining < 0) blackTimeRemaining = 0;
+            }
+
+            updateClockDisplay(whiteClockEl, whiteTimeRemaining);
+            updateClockDisplay(blackClockEl, blackTimeRemaining);
+        }
+
+        function formatTime(milliseconds) {
+            const seconds = milliseconds / 1000;
+            if (seconds < 60) {
+                const totalCentiseconds = Math.floor(seconds * 100);
+                const displaySeconds = Math.floor(totalCentiseconds / 100);
+                const displayCentiseconds = totalCentiseconds % 100;
+                return `${displaySeconds.toString().padStart(1, '0')}.${displayCentiseconds.toString().padStart(2, '0')}`;
+            } else {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = Math.floor(seconds % 60);
+                return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function updateClockDisplay(element, milliseconds) {
+            element.text(element.attr('id').includes('white') ? `White: ${formatTime(milliseconds)}` : `Black: ${formatTime(milliseconds)}`);
+        }
+
+        // --- Event Handlers ---
+        resignBtn.on('click', () => {
+            if (confirm('Are you sure you want to resign?')) {
+                socket.send(JSON.stringify({ type: 'resign', gameId: myGameId }));
+                // Introduce a small delay to allow the gameEnded message to be received
+                setTimeout(() => {
+                    // Any UI updates or state changes that might implicitly affect the WebSocket
+                    // or prevent message reception can go here, or be handled by gameEnded
+                    // For now, we just send the message and rely on gameEnded handler for UI.
+                }, 100); // 100ms delay
+            }
+        });
+
+        newGameBtn.on('click', () => {
+            socket.send(JSON.stringify({ type: 'newGame', gameId: myGameId }));
+        });
+
+        createGameBtn.on('click', () => {
+            const selectedTime = timeFormatSelect.val(); // Get the selected value
+            socket.send(JSON.stringify({ type: 'createGame', timeFormat: parseInt(selectedTime) }));
+        });
+
+        joinGameBtn.on('click', () => {
+            const gameId = joinGameIdInput.val();
+            if (gameId) {
+                socket.send(JSON.stringify({ type: 'joinGame', gameId: gameId }));
+            }
+        });
+
+        joinGameIdInput.on('input', () => {
+            joinGameBtn.prop('disabled', !joinGameIdInput.val());
+        });
+
+        clearLocalStorageBtn.on('click', () => {
+            localStorage.removeItem('myGameId');
+            localStorage.removeItem('playerColor');
+            alert('Local storage cleared! Page will now reload.');
+            location.reload();
+        });
+
+        // --- Initialization ---
+        const config = {
+            draggable: true,
+            position: 'start',
+            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+        };
+        board = Chessboard('myBoard', config);
+        $(window).resize(board.resize);
+
+        connectToServer();
+    </script>
+</body>
+</html>

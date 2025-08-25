@@ -1,0 +1,17 @@
+# Build outputs
+/build/
+/Debug/
+/Release/
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.log
+
+# Visual Studio
+/.vs/
+/out/
+
+# OS junk
+Thumbs.db
+.DS_Store

@@ -1,0 +1,64 @@
+# CMake generation dependency list for this directory.
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeCInformation.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeCXXInformation.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeDependentOption.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeFindDependencyMacro.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeGenericSystem.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeInitializeConfigs.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeLanguageInformation.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeRCInformation.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeSystemSpecificInformation.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/CMakeSystemSpecificInitialize.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/Compiler/MSVC-C.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/Compiler/MSVC-CXX.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/FindBoost.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/FindPackageMessage.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/Platform/Windows-MSVC-C.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/Platform/Windows-MSVC-CXX.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/Platform/Windows-MSVC.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/Platform/Windows.cmake
+C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.20/Modules/Platform/WindowsPaths.cmake
+C:/Users/Fahmi/source/repos/fchess_server/CMakeFiles/3.20.21032501-MSVC_2/CMakeCCompiler.cmake
+C:/Users/Fahmi/source/repos/fchess_server/CMakeFiles/3.20.21032501-MSVC_2/CMakeCXXCompiler.cmake
+C:/Users/Fahmi/source/repos/fchess_server/CMakeFiles/3.20.21032501-MSVC_2/CMakeRCCompiler.cmake
+C:/Users/Fahmi/source/repos/fchess_server/CMakeFiles/3.20.21032501-MSVC_2/CMakeSystem.cmake
+C:/Users/Fahmi/source/repos/fchess_server/CMakeLists.txt
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost/BoostConfig.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost/BoostConfigVersion.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost/vcpkg-cmake-wrapper.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_assert/boost_assert-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_assert/boost_assert-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_assert/boost_assert-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_config/boost_config-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_config/boost_config-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_config/boost_config-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_headers/boost_headers-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_headers/boost_headers-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_headers/boost_headers-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_mp11/boost_mp11-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_mp11/boost_mp11-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_mp11/boost_mp11-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_predef/boost_predef-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_predef/boost_predef-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_predef/boost_predef-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_system/boost_system-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_system/boost_system-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_system/boost_system-targets-debug.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_system/boost_system-targets-release.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_system/boost_system-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_throw_exception/boost_throw_exception-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_throw_exception/boost_throw_exception-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_throw_exception/boost_throw_exception-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_variant2/boost_variant2-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_variant2/boost_variant2-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_variant2/boost_variant2-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_winapi/boost_winapi-config-version.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_winapi/boost_winapi-config.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/boost_winapi/boost_winapi-targets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/nlohmann_json/nlohmann_jsonConfig.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/nlohmann_json/nlohmann_jsonConfigVersion.cmake
+C:/Users/Fahmi/source/repos/vcpkg/installed/x64-windows/share/nlohmann_json/nlohmann_jsonTargets.cmake
+C:/Users/Fahmi/source/repos/vcpkg/scripts/buildsystems/vcpkg.cmake
