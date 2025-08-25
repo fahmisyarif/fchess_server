@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Caro-Kann Classical with Move History</title>
+  <link rel="stylesheet" href="asset/base.css">
+  <link rel="stylesheet" href="asset/brown.css">
+  <link rel="stylesheet" href="./asset/cburnett.css">
+  <style>
+    .board-container {
+          
+    }
+    #board { width: 400px; height: 400px; margin: 20px auto; }
+    #moves { width: 400px; height: 400px; margin: 10px auto; font-family: monospace; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji";
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Caro–Kann Defense: Classical Variation</h2>
+  <div id="board"></div>
+  <div id="moves"></div>
+  <button id="flipBtn">Flip Board</button>
+  <button id="reverseBtn">Reverse Position</button>
+  <button id="undoBtn">Undo Last Move</button>
+
+<script type="module">
+    import { Chess } from "https://cdn.jsdelivr.net/npm/chess.js@1.0.0/dist/esm/chess.js";
+    import { Chessground } from "https://cdn.jsdelivr.net/npm/chessground@9.0.1/dist/chessground.min.js";
+
+    // All 64 squares
+    const SQUARES = [
+      "a8","b8","c8","d8","e8","f8","g8","h8",
+      "a7","b7","c7","d7","e7","f7","g7","h7",
+      "a6","b6","c6","d6","e6","f6","g6","h6",
+      "a5","b5","c5","d5","e5","f5","g5","h5",
+      "a4","b4","c4","d4","e4","f4","g4","h4",
+      "a3","b3","c3","d3","e3","f3","g3","h3",
+      "a2","b2","c2","d2","e2","f2","g2","h2",
+      "a1","b1","c1","d1","e1","f1","g1","h1"
+    ];
+
+    // Start from Caro-Kann Classical position
+    const game = new Chess("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    const boardEl = document.getElementById("board");
+    const movesEl = document.getElementById("moves");
+
+    const ground = Chessground(boardEl, {
+      fen: game.fen(),
+      orientation: "white",
+      movable: { free: false, color: 'white', dests: toDests(game) }
+    });
+
+    function toDests(chess) {
+      const dests = new Map();
+      SQUARES.forEach(sq => {
+        const ms = chess.moves({ square: sq, verbose: true });
+        if (ms.length) dests.set(sq, ms.map(m => m.to));
+      });
+      return dests;
+    }
+
+    function update() {
+      ground.set({
+        fen: game.fen(),
+        turnColor: game.turn() === 'w' ? 'white' : 'black',
+        movable: { dests: toDests(game), color: game.turn() === 'w' ? 'white' : 'black' }
+      });
+      // Update move history
+      const hist = game.history();
+      movesEl.textContent = hist.map((m, i) =>
+        (i % 2 === 0 ? ((i/2 + 1) + ". ") : "") + m
+      ).join(" ");
+    }
+    // Flip board orientation (White <-> Black)
+    document.getElementById("flipBtn").addEventListener("click", () => {
+      ground.set({ orientation: ground.state.orientation === 'white' ? 'black' : 'white' });
+    });
+
+    // Reverse the board position (swap pieces for Black/White)
+    document.getElementById("reverseBtn").addEventListener("click", () => {
+    // Reverse FEN
+    const fenParts = game.fen().split(" ");
+    const reversedFen = fenParts[0].split("/").reverse().join("/") + " " + 
+                      (fenParts[1] === 'w' ? 'b' : 'w') + " " + 
+                      fenParts.slice(2).join(" ");
+    game.load(reversedFen);
+    update();
+    });
+
+    ground.set({
+      events: {
+        move: (orig, dest) => {
+          const move = game.move({ from: orig, to: dest, promotion: 'q' });
+          if (move) update();
+          else update();
+        }
+      }
+    });
+    // Undo the last move
+document.getElementById("undoBtn").addEventListener("click", () => {
+  const move = game.undo();   // Remove the last move from the history
+  if (move) update();      // Refresh board and move history
+});
+
+    update();
+  </script>
+
+</body>
+</html>
